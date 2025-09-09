@@ -1,0 +1,32 @@
+# Poetry
+.poetry/
+dist/
+build/
+*.egg-info/
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Pytest / Coverage
+.cache/
+coverage.*
+htmlcov/
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# VSCode
+.vscode/
+*.code-workspace
+
+# MyPy / Pyright / Pylint / etc
+.mypy_cache/
+.pyright/
+.pytest_cache/
+
+# Logs / Dumps
+*.log
+*.out
+*.pid
