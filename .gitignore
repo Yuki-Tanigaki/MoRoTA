@@ -1,32 +1,35 @@
-# Poetry
-.poetry/
+# ===== Python 基本 =====
+__pycache__/
+*.py[cod]
+*$py.class
+
+# ===== 仮想環境 =====
+.venv/
+env/
+venv/
+
+# ===== パッケージング関連 =====
 dist/
 build/
 *.egg-info/
 
-# Virtual environment
-.venv/
-venv/
-env/
-
-# Pytest / Coverage
+# ===== キャッシュ類 =====
 .cache/
-coverage.*
-htmlcov/
+.pytest_cache/
+.mypy_cache/
+.hypothesis/
 
-# Jupyter Notebook
+# ===== Jupyter Notebook =====
 .ipynb_checkpoints/
 
-# VSCode
-.vscode/
-*.code-workspace
-
-# MyPy / Pyright / Pylint / etc
-.mypy_cache/
-.pyright/
-.pytest_cache/
-
-# Logs / Dumps
+# ===== ログ =====
 *.log
-*.out
-*.pid
+
+# ===== VS Code =====
+.vscode/
+
+# ===== uv / pip / lockfile 系（任意で ignore） =====
+.pdm-python
+.pixi/
+
+# ===== プロジェクト固有 =====
