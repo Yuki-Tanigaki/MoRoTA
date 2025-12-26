@@ -2,7 +2,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from importlib import import_module
 from pathlib import Path
-from typing import Dict, Tuple
+from typing import Counter, Dict, Tuple
 
 from mesa import Model
 from mesa.space import ContinuousSpace
@@ -11,7 +11,6 @@ from morota.sim.failure_models import FailureModel
 from morota.sim.agent import WorkerAgent, TaskAgent, DepotAgent
 from morota.config_loader import ScenarioConfig
 from morota.sim.module import build_modules_from_cfg
-from morota.sim.task_selection import TaskSelector
 from morota.utils.datacollector import StepDataCollector
 
 class ScenarioModel(Model):
@@ -63,45 +62,64 @@ class ScenarioModel(Model):
         self.configuration_planner = cp_class(**cfg.configuration_planner.params)
         self.type_priority = cfg.type_priority
 
-        # タスク割当
+        # タスクアロケーター
         ta_module = import_module(cfg.task_allocator.module)
         ta_class = getattr(ta_module, cfg.task_allocator.class_name)
         self.task_allocator = ta_class(**cfg.task_allocator.params)
 
-        # ワーカー
+        # ワーカーの作成
         self.workers: Dict[int, WorkerAgent] = {}
-        for w_spec in cfg.workers:
-            agent = WorkerAgent(
-                model=self,
-                worker_id=w_spec.worker_id,
-                speed=w_spec.speed,
-                throughput=w_spec.throughput,
-                speed_eta=w_spec.speed_eta,
-                throughput_eta=w_spec.throughput_eta,
-                initial_H=w_spec.initial_H,
-                fatigue_move=w_spec.fatigue_move,
-                fatigue_work=w_spec.fatigue_work,
-            )
-            self.workers[w_spec.worker_id] = agent
-            x, y = w_spec.position  # unpack
-            self.space.place_agent(agent, (x, y))
+        self.configuration_planner.build_workers(self)
+        self._debug_show_depot_and_workers()
 
         # 故障モデル
         f_module = import_module(cfg.failure_model.module)
         f_cls = getattr(f_module, cfg.failure_model.class_name)
         self.failure_model: FailureModel = f_cls(**cfg.failure_model.params)
-        # タスク選択ポリシー
-        ts_module = import_module(cfg.task_selector.module)
-        ts_class = getattr(ts_module, cfg.task_selector.class_name)
-        self.task_selector: TaskSelector = ts_class(**cfg.task_selector.params)
-        
-        self.command_center.initialize_full_info(
-            workers=self.workers.values(),
-            tasks=self.tasks.values(),
-        )
-    
+
+    def _debug_show_depot_and_workers(self) -> None:
+        # --- Depot 在庫 ---
+        print("\n[DEBUG] Depot stock snapshot")
+        # DepotAgent に snapshot() がある前提（なければ fall back）
+        if hasattr(self.depot, "snapshot"):
+            stock = self.depot.snapshot()
+        else:
+            # 最低限: _stock_count / _stock_by_type があれば見る
+            stock = {}
+            if hasattr(self.depot, "_stock_count"):
+                stock = dict(getattr(self.depot, "_stock_count"))
+            elif hasattr(self.depot, "_stock_by_type"):
+                sbt = getattr(self.depot, "_stock_by_type")
+                stock = {k: len(v) for k, v in sbt.items()}
+        print(stock)
+
+        # --- Worker 所持 ---
+        print("\n[DEBUG] Workers modules")
+        for wid, w in self.workers.items():
+            # Worker が持つモジュールlistをそれっぽい候補から取る
+            mods = None
+            for attr in ("modules", "held_modules", "carrying_modules", "robot_modules"):
+                if hasattr(w, attr):
+                    mods = getattr(w, attr)
+                    break
+            if mods is None and hasattr(w, "robot") and hasattr(w.robot, "modules"):
+                mods = w.robot.modules
+
+            # 表示
+            if not mods:
+                print(f"  worker#{wid}: (no modules or unknown attribute)")
+                continue
+
+            # Module object なら m.type、dictなら ["type"] を想定
+            def _mtype(m):
+                return getattr(m, "type", None) or (m.get("type") if isinstance(m, dict) else str(m))
+
+            counts = Counter(_mtype(m) for m in mods)
+            print(f"  worker#{wid} @pos={getattr(w,'pos',None)}: {dict(counts)}")
+
+
     # ==========================================================
-    # 通信距離判定：エージェント/座標どちらでも使えるユーティリティ
+    # 座標ユーティリティ
     # ==========================================================
     def _get_pos(self, obj) -> Tuple[float, float]:
         """Agent または座標タプルを pos に変換するヘルパー."""
@@ -114,30 +132,20 @@ class ScenarioModel(Model):
         pa = self._get_pos(a)
         pb = self._get_pos(b)
         # ContinuousSpace の get_distance を使えば torus 設定も反映される
-        return self.space.get_distance(pa, pb)
-
-    def can_communicate(self, a, b) -> bool:
-        """a と b が通信可能距離内かどうか."""
-        return self.distance(a, b) <= self.communication_range
+        return self.space.get_distance(pa, pb)  
 
     def step(self):
         workers = list(self.workers.values())
-        # 全 worker について _next_info_state を計算
-        for w in workers:
-            w.prepare_communicate()
-        
-        self.command_center.communicate()
-
-        # 全 worker の info_state を一斉に更新
-        for w in workers:
-            w.communicate()
-        
         tasks = list(self.tasks.values())
         for t in tasks:
             t.begin_step()
 
         # 各ワーカーのタスク選択
-        self.task_selector.assign_tasks(self)
+        self.task_allocator.assign_tasks(self)
+
+        # for w in workers:
+        #     print(w.mode)
+        # print(self.steps)
 
         # 全エージェントのステップ実行
         self.agents.do("step")
@@ -157,7 +165,7 @@ class ScenarioModel(Model):
             t.finished_step for t in self.tasks.values() if t.finished_step is not None
         ]
         if not finished_steps:
-            return self.cfg.max_steps
+            return self.cfg.sim.max_steps
         return max(finished_steps) * self.time_step
     
     def finalize(self) -> None:

@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from typing import Dict, Iterable, List, Optional
+from typing import Dict, Iterable, List, Mapping, Optional
 from collections import Counter
 
 from mesa import Agent, Model
+from morota.domain import inventory
 from morota.sim.module import Module
 
 # ---- DepotAgent ----
@@ -32,26 +33,25 @@ class DepotAgent(Agent):
     def snapshot(self) -> Dict[str, int]:
         return dict(self._stock_count)
 
-    # --- 在庫払い出し ---
+    # --- 判定 ---
+    def can_cover(self, deficits: Mapping[str, int]) -> bool:
+        # snapshot を使う（生在庫は見ない）
+        return inventory.can_cover(deficits, self.snapshot())
+
+    # --- 払い出し ---
     def request_modules(self, request: Dict[str, int]) -> List[Module]:
-        granted: List[Module] = []
-
-        for t, n in request.items():
-            available = self._stock_by_type.get(t, [])
-            take = min(n, len(available))
-
-            for _ in range(take):
-                granted.append(available.pop())
-
-            self._stock_count[t] -= take
-
-        return granted
+        return inventory.request_modules(
+            request=request,
+            stock_by_type=self._stock_by_type,
+            stock_count=self._stock_count,
+        )
 
     def try_reserve_all(self, request: Dict[str, int]) -> Optional[List[Module]]:
-        for t, n in request.items():
-            if self.count(t) < n:
-                return None
-        return self.request_modules(request)
+        return inventory.try_reserve_all(
+            request=request,
+            stock_by_type=self._stock_by_type,
+            stock_count=self._stock_count,
+        )
 
     def step(self) -> None:
         pass

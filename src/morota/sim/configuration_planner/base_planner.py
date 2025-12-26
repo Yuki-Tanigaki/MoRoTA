@@ -3,6 +3,8 @@ from typing import Dict, List, Protocol
 import random
 
 from mesa import Model
+from morota.config_loader import ScenarioConfig
+from morota.domain.inventory import try_reserve_all
 from morota.sim.agent import WorkerAgent, TaskAgent
 from morota.sim.agent.depot_agent import DepotAgent
 
@@ -47,53 +49,31 @@ def _feasible_types(cfg, depot_snapshot: Dict[str, int]) -> List[str]:
 
 
 class RandomConfigurationPlanner(ConfigurationPlanner):
-    """
-    既存 worker の不足補充 → 不足なら新規作成（declared_type はランダム）
-    """
-
     def __init__(self, seed: int, num_workers: int) -> None:
         self.rng = random.Random(seed)
         self.num_workers = num_workers
 
-    def build_workers(self, model: Model, workers: List[WorkerAgent]) -> None:
-        cfg = model.cfg
-        depot: DepotAgent = model.depot  # model が depot を持つ前提
+    def build_workers(self, model: Model) -> None:
+        cfg: ScenarioConfig = model.cfg
+        depot: DepotAgent = model.depot
 
-        # --- 1) 既存 worker を順に補充（declared_type は変えない） ---
-        for w in workers:
-            if not w.declared_type:
-                continue
-
-            spec = cfg.robot_types[w.declared_type]
-            have = _count_modules(w.modules)
-            need_more = _deficits(dict(spec.required_modules), have)
-            if not need_more:
-                continue
-
-            # DepotAgent.request_modules は「可能な分だけ払い出し」なので、
-            # ここは不足分が出ても良い（とりあえず追加する）仕様にしている。
-            granted = depot.request_modules(need_more)
-            if granted:
-                w.modules.extend(granted)
-                w.refresh_capability_from_modules()
-
-        # --- 2) num_workers に達するまで新規 worker を作成 ---
-        while len(workers) < self.num_workers:
-            snap = depot.snapshot()
-            feasible = _feasible_types(cfg, snap)
+        while len(model.workers) < self.num_workers:
+            snap = depot.snapshot()                 # 観測（デバッグ用/例外メッセージ用）
+            feasible = _feasible_types(cfg, snap)   # 観測に基づく候補抽出
             if not feasible:
                 raise ValueError(f"No feasible robot_type with remaining stock: {snap}")
 
             declared_type = self.rng.choice(feasible)
             req = dict(cfg.robot_types[declared_type].required_modules)
 
-            # 一括確保（足りないなら None で在庫は減らない）
+            # 在庫を実際に確保
             reserved = depot.try_reserve_all(req)
             if reserved is None:
-                # feasible を snapshot から作ってるので基本起きないはずだが、競合があるなら起き得る
+                # feasible 判定は snapshot に基づくので、将来「予約」などが入るとズレる可能性がある
+                # なので "despite feasibility check" ではなく、リトライにするのが安全
                 continue
 
-            wid = len(workers)
+            wid = len(model.workers)
             w = WorkerAgent(
                 model=model,
                 worker_id=wid,
@@ -101,4 +81,12 @@ class RandomConfigurationPlanner(ConfigurationPlanner):
                 declared_type=declared_type,
             )
 
+            w.mode = "reconstruction"
+            w.duration_left = cfg.sim.reconstruct_duration
+            w._reserved_modules = w.modules
+            w.modules = []
+
             model.workers[wid] = w
+
+            x, y = depot.pos
+            model.space.place_agent(w, (x, y))

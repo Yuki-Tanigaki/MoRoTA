@@ -1,7 +1,9 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING, Protocol, Optional
 
+from morota.domain import inventory
 from morota.sim.agent import WorkerAgent, TaskAgent
+from morota.sim.agent.depot_agent import DepotAgent
 
 if TYPE_CHECKING:
     from morota.sim.model import ScenarioModel
@@ -24,40 +26,34 @@ class NearestIncompleteTaskSelector(TaskSelector):
     - 各ワーカーについて
       - まだ終わっていないタスクの中から
       - 「現在位置から最も近いタスク」を 1 つ選ぶ
+      モジュールがひとつでも故障した場合は取りに戻る
     """
 
     def assign_tasks(self, model: ScenarioModel) -> None:
-        # 未完了タスクだけを対象にする
         incomplete_tasks = [t for t in model.tasks.values() if t.status != "done"]
+        depot: DepotAgent = model.depot
+        stock = depot.snapshot()
 
         for w in model.workers.values():
-            # すでに修理中 or 修理に向かっているならポリシー側では何もしない
-            if w.mode in ("go_repair", "repairing"):
+            if w.mode in ("go_reconstruction", "reconstruction"):
                 continue
-
-            # 故障しているなら修理に行かせる
-            if w.state == "failed":
-                w.mode = "go_repair"
-                w.target_task = None
-                continue
-
-            # w が「未完了」と信じているタスクから最近傍を探す
-            candidates = []
-            for tid, tinfo in w.info_state.tasks.items():
-                if tinfo.status == "done":
+            
+            deficits = w.deficits_for_declared_type()
+            if len(deficits) != 0:
+                if inventory.can_cover(deficits, stock):
+                    w.mode = "go_reconstruction"
+                    w.target_task = None
                     continue
-                candidates.append((tid, tinfo))
 
-            if not candidates:
+            if not incomplete_tasks:
                 w.target_task = None
                 w.mode = "idle"
                 continue
 
-            # 最近傍（推定座標ベース）
-            best_tid, _ = min(
-                candidates,
-                key=lambda pair: model.distance(w.pos, model.tasks[pair[0]].pos),
+            best_task = min(
+                incomplete_tasks,
+                key=lambda t: model.distance(w.pos, t.pos),
             )
 
-            w.target_task = model.tasks[best_tid]
+            w.target_task = best_task
             w.mode = "work"

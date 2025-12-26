@@ -9,6 +9,7 @@ sim:
   max_steps: 500
   interval_task_order: 100
   interval_robot_conf: 100
+  reconstruct_duration: 10
   time_step: 1.0    # シミュレーションの時間ステップ
 
 module_depot:
@@ -18,8 +19,10 @@ failure_model:
   module: morota.sim.failure_models
   class: WeibullFailureModel
   params:
-    lam: 200   # 故障率 λ
-    k: 1.5        # 形状パラメータ k
+    l: 200   # 故障率
+    k: 1.5        # 形状パラメータ
+    fatigue_move: {Body: 0.0, Limb: 0.5, Wheel: 1.0}
+    fatigue_work: {Body: 0.0, Limb: 1.0, Wheel: 0.0}
 
 configuration_planner:
   module: morota.sim.configuration_planner
@@ -29,17 +32,22 @@ configuration_planner:
     num_workers: 10
 
 task_allocator:
-  module: morota.sim.task_selection
-  class: GABasedTaskSelector
-  params:
-    interval: 50
-    pop_size: 100
-    generations: 1000
-    elitism_rate: 0.1
-    L_max: 5
-    seed: 1234
-    trials: 5
+  module: morota.sim.task_allocator
+  class: NearestIncompleteTaskSelector
+  params: {}
 
-modules: "modules_100_244.csv"
-robot_setup: "robot_setup_norm.yml"
-tasks:   "tasks_sobol.csv"
+# task_allocator:
+#   module: morota.sim.task_selection
+#   class: GABasedTaskSelector
+#   params:
+#     interval: 50
+#     pop_size: 100
+#     generations: 1000
+#     elitism_rate: 0.1
+#     L_max: 5
+#     seed: 1234
+#     trials: 5
+
+modules: "datasets/modules_100_244.csv"
+robot_setup: "datasets/robot_setup_norm.yml"
+tasks:   "datasets/tasks_sobol.csv"

@@ -2,11 +2,17 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import math
-from typing import Protocol
+from typing import Literal, Mapping, Protocol
 
 
 class FailureModel(Protocol):
     """WorkerAgentが使う故障モデルのインターフェース."""
+
+    def fatigue(self, action: str) -> float:
+        """
+        疲労蓄積
+        """
+        ...
 
     def failure_prob(self, H: float) -> float:
         """
@@ -30,35 +36,32 @@ class FailureModel(Protocol):
         """
         ...
 
-
-@dataclass
-class SimpleFailureModel:
-    """常に同じ確率で故障するシンプルなモデル."""
-
-    prob: float
-
-    def failure_prob(self, H: float) -> float:
-        return 1.0 - math.exp(H * math.log(1.0 - self.prob))
-    
-    def failure_prob_step(self, H: float, delta_H: float) -> float:
-        return self.prob
-    
 @dataclass
 class WeibullFailureModel:
-    lam: float  # スケール（H単位で直接：H=lamで約63%故障）
+    l: float  # スケール（H単位で直接：H=lamで約63%故障）
     k: float    # 形状
+    fatigue_move: Mapping[str, float]
+    fatigue_work: Mapping[str, float]
+    Action = Literal["move", "work"]
+
+    def fatigue(self, action: Action) -> Mapping[str, float]:
+        if action == "move":
+            return self.fatigue_move
+        if action == "work":
+            return self.fatigue_work
+        raise ValueError(f"Unknown action: {action!r}")
 
     def failure_prob(self, H: float) -> float:
-        if H <= 0 or self.lam <= 0 or self.k <= 0:
+        if H <= 0 or self.l <= 0 or self.k <= 0:
             return 0.0
-        return 1.0 - math.exp(- (H / self.lam) ** self.k)
+        return 1.0 - math.exp(- (H / self.l) ** self.k)
 
     def failure_prob_step(self, H: float, delta_H: float) -> float:
-        if delta_H <= 0 or self.lam <= 0 or self.k <= 0:
+        if delta_H <= 0 or self.l <= 0 or self.k <= 0:
             return 0.0
 
         def F(x: float) -> float:
-            return 1.0 - math.exp(- (x / self.lam) ** self.k)
+            return 1.0 - math.exp(- (x / self.l) ** self.k)
 
         F_old = F(H)
         F_new = F(H + delta_H)

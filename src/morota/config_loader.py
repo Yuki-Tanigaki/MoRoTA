@@ -58,6 +58,7 @@ class SimConfig:
     max_steps: int
     interval_task_order: int
     interval_robot_conf: int
+    reconstruct_duration: int
     time_step: float
 
 
@@ -249,6 +250,7 @@ def load_scenario_config(yaml_path: str | Path) -> ScenarioConfig:
         max_steps=int(_require(sim_cfg, "max_steps", where=f"{yaml_path}:sim")),
         interval_task_order=int(_require(sim_cfg, "interval_task_order", where=f"{yaml_path}:sim")),
         interval_robot_conf=int(_require(sim_cfg, "interval_robot_conf", where=f"{yaml_path}:sim")),
+        reconstruct_duration=float(_require(sim_cfg, "reconstruct_duration", where=f"{yaml_path}:sim")),
         time_step=float(_require(sim_cfg, "time_step", where=f"{yaml_path}:sim")),
     )
 
