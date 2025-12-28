@@ -70,7 +70,7 @@ class ScenarioModel(Model):
         # ワーカーの作成
         self.workers: Dict[int, WorkerAgent] = {}
         self.configuration_planner.build_workers(self)
-        self._debug_show_depot_and_workers()
+        # self._debug_show_depot_and_workers()
 
         # 故障モデル
         f_module = import_module(cfg.failure_model.module)
@@ -146,6 +146,7 @@ class ScenarioModel(Model):
         # for w in workers:
         #     print(w.mode)
         # print(self.steps)
+        # self._debug_show_depot_and_workers()
 
         # 全エージェントのステップ実行
         self.agents.do("step")

@@ -42,6 +42,7 @@ def main():
     model.finalize()
 
     makespan = model.get_makespan()
+    print(makespan)
 
 
 if __name__ == "__main__":

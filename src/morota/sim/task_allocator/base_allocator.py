@@ -9,7 +9,7 @@ if TYPE_CHECKING:
     from morota.sim.model import ScenarioModel
 
 
-class TaskSelector(Protocol):
+class TaskAllocator(Protocol):
     """
     タスク選択ポリシーのインタフェース。
     """
@@ -21,7 +21,7 @@ class TaskSelector(Protocol):
         ...
 
 
-class NearestIncompleteTaskSelector(TaskSelector):
+class NearestTaskAllocator(TaskAllocator):
     """
     - 各ワーカーについて
       - まだ終わっていないタスクの中から

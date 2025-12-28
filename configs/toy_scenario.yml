@@ -33,18 +33,18 @@ configuration_planner:
 
 task_allocator:
   module: morota.sim.task_allocator
-  class: NearestIncompleteTaskSelector
+  class: NearestTaskAllocator
   params: {}
 
 # task_allocator:
-#   module: morota.sim.task_selection
-#   class: GABasedTaskSelector
+#   module: morota.sim.task_allocator
+#   class: GeneticAllocator
 #   params:
 #     interval: 50
 #     pop_size: 100
 #     generations: 1000
 #     elitism_rate: 0.1
-#     L_max: 5
+#     L_max: 10
 #     seed: 1234
 #     trials: 5
 
