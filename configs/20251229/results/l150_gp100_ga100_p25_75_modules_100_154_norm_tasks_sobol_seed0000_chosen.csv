@@ -1,0 +1,6 @@
+event_id,step,preference_json,objectives_json,violation,worker_types_json,routes_json,repairs_json
+1,1,"[0.25,0.75]","[-40.0,-8.0]",,"[""Dragon"",""Dragon"",""Dragon"",""QWDH"",""Dragon"",""Dragon"",""QWDH"",""Dragon"",""Dragon"",""Dragon""]",,
+2,101,"[0.25,0.75]","[-14.0,-7.0]",,"[""Minimal"",null,null,""Minimal"",""Minimal"",""Minimal"",""Minimal"",""Minimal"",""Minimal"",null]",,
+3,201,"[0.25,0.75]","[-26.0,-9.0]",,"[""Minimal"",""Minimal"",""Minimal"",""Minimal"",""Dragon"",""Dragon"",""Dragon"",""Dragon"",""Minimal"",""Minimal""]",,
+4,301,"[0.25,0.75]","[-17.0,-10.0]",,"[""Minimal"",null,""Minimal"",""Minimal"",""Minimal"",""Minimal"",""Dragon"",""Dragon"",null,null]",,
+5,401,"[0.25,0.75]","[-11.5,-7.0]",,"[null,null,null,""Minimal"",""Minimal"",null,""Dragon"",""Minimal"",null,""Minimal""]",,

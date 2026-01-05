@@ -8,19 +8,19 @@ robot_types:
       Body: 1
       Limb: 4
       Wheel: 3
-    performance: { speed: 3.2, throughput: 2.6 }
+    performance: { speed: 3.0, throughput: 3.0 }
   QWDH:
     required_modules:
       Body: 1
       Limb: 6
       Wheel: 4
-    performance: { speed: 4.3, throughput: 5.2 }
+    performance: { speed: 4.0, throughput: 4.0 }
   Dragon:
     required_modules:
       Body: 0
       Limb: 2
       Wheel: 2
-    performance: { speed: 2.2, throughput: 1.9 }
+    performance: { speed: 1.5, throughput: 2.0 }
   Minimal:
     required_modules:
       Body: 0

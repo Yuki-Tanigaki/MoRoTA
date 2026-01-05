@@ -1,5 +1,5 @@
 scenario_name: "toy_scenario"
-output_dir: results
+output_dir: .results
 
 space:
   width: 100.0
@@ -7,10 +7,9 @@ space:
 
 sim:
   max_steps: 500
-  interval_task_order: 100
-  interval_robot_conf: 100
   reconstruct_duration: 10
   time_step: 1.0    # シミュレーションの時間ステップ
+  H_limit: 500    # ロボットの稼働時間上限（想定）
 
 module_depot:
   position: [50.0, 50.0]
@@ -19,34 +18,46 @@ failure_model:
   module: morota.sim.failure_models
   class: WeibullFailureModel
   params:
-    l: 200   # 故障率
-    k: 1.5        # 形状パラメータ
-    fatigue_move: {Body: 0.0, Limb: 0.5, Wheel: 1.0}
-    fatigue_work: {Body: 0.0, Limb: 1.0, Wheel: 0.0}
+    l: 300   # 故障率
+    k: 1.2        # 形状パラメータ
+    fatigue_move: {Body: 0.5, Limb: 0.5, Wheel: 1.0}
+    fatigue_work: {Body: 0.5, Limb: 1.0, Wheel: 0.0}
+
+# configuration_planner:
+#   module: morota.sim.configuration_planner
+#   class: RandomConfigurationPlanner
+#   params:
+#     seed: 42
+#     num_workers: 10
 
 configuration_planner:
   module: morota.sim.configuration_planner
-  class: RandomConfigurationPlanner
+  class: GeneticPlanner
   params:
+    interval: 50
+    num_workers_max: 10
+    pop_size: 50
+    generations: 1000
     seed: 42
-    num_workers: 10
-
-task_allocator:
-  module: morota.sim.task_allocator
-  class: NearestTaskAllocator
-  params: {}
+    trials: 1
+    preference: [0.7, 0.3]   # [makespan weight, total energy weight]
 
 # task_allocator:
 #   module: morota.sim.task_allocator
-#   class: GeneticAllocator
-#   params:
-#     interval: 50
-#     pop_size: 100
-#     generations: 1000
-#     elitism_rate: 0.1
-#     L_max: 10
-#     seed: 1234
-#     trials: 5
+#   class: NearestTaskAllocator
+#   params: {}
+
+task_allocator:
+  module: morota.sim.task_allocator
+  class: GeneticAllocator
+  params:
+    interval: 50
+    pop_size: 50
+    generations: 1000
+    elitism_rate: 0.1
+    L_max: 10
+    seed: 1234
+    trials: 1
 
 modules: "datasets/modules_100_244.csv"
 robot_setup: "datasets/robot_setup_norm.yml"

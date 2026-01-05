@@ -11,7 +11,7 @@ from morota.sim.failure_models import FailureModel
 from morota.sim.agent import WorkerAgent, TaskAgent, DepotAgent
 from morota.config_loader import ScenarioConfig
 from morota.sim.module import build_modules_from_cfg
-from morota.utils.datacollector import StepDataCollector
+from morota.utils.datacollector import OptDataCollector, StepDataCollector
 
 class ScenarioModel(Model):
     def __init__(self, cfg: ScenarioConfig, seed: int, write_csv: bool):
@@ -26,6 +26,8 @@ class ScenarioModel(Model):
         prefix = f"seed{seed:04d}"
         self.data_collector = StepDataCollector(out_dir=out_dir, scenario_name=scenario_name, prefix=prefix, flush_every=1)
         self.data_collector.open()
+        self.opt_collector = OptDataCollector(out_dir=out_dir, scenario_name=scenario_name, prefix=prefix)
+        self.opt_collector.open()
         self.write_csv = write_csv
 
         # シミュレーション空間設定
@@ -96,25 +98,11 @@ class ScenarioModel(Model):
         # --- Worker 所持 ---
         print("\n[DEBUG] Workers modules")
         for wid, w in self.workers.items():
-            # Worker が持つモジュールlistをそれっぽい候補から取る
-            mods = None
-            for attr in ("modules", "held_modules", "carrying_modules", "robot_modules"):
-                if hasattr(w, attr):
-                    mods = getattr(w, attr)
-                    break
-            if mods is None and hasattr(w, "robot") and hasattr(w.robot, "modules"):
-                mods = w.robot.modules
-
-            # 表示
-            if not mods:
-                print(f"  worker#{wid}: (no modules or unknown attribute)")
-                continue
-
             # Module object なら m.type、dictなら ["type"] を想定
             def _mtype(m):
                 return getattr(m, "type", None) or (m.get("type") if isinstance(m, dict) else str(m))
 
-            counts = Counter(_mtype(m) for m in mods)
+            counts = Counter(_mtype(m) for m in w.modules)
             print(f"  worker#{wid} @pos={getattr(w,'pos',None)}: {dict(counts)}")
 
 
@@ -135,6 +123,7 @@ class ScenarioModel(Model):
         return self.space.get_distance(pa, pb)  
 
     def step(self):
+        self.configuration_planner.build_workers(self)        
         workers = list(self.workers.values())
         tasks = list(self.tasks.values())
         for t in tasks:
@@ -161,13 +150,11 @@ class ScenarioModel(Model):
         return all(t.status == "done" for t in self.tasks.values())
 
     def get_makespan(self) -> float:
-        # TaskAgent.finished_step の最大値 × time_step
-        finished_steps = [
-            t.finished_step for t in self.tasks.values() if t.finished_step is not None
-        ]
-        if not finished_steps:
-            return self.cfg.sim.max_steps
-        return max(finished_steps) * self.time_step
+        # 1つでも未完了タスクがあれば未達成
+        if any(t.finished_step is None for t in self.tasks.values()):
+            return self.cfg.sim.max_steps * self.time_step
+
+        return max(t.finished_step for t in self.tasks.values()) * self.time_step
     
     def finalize(self) -> None:
         self.data_collector.close()

@@ -1,0 +1,5 @@
+event_id,step,preference_json,objectives_json,violation,worker_types_json,routes_json,repairs_json
+1,1,"[0.5,0.5]","[-53.0,-6.0]",,"[""Dragon"",""QWDH"",""QWDH"",""Dragon"",""Dragon"",""QWDH"",""QWDH"",""Dragon"",""Dragon"",""Dragon""]",,
+2,101,"[0.5,0.5]","[-20.0,-5.0]",,"[null,""QWDH"",""Minimal"",null,""Minimal"",""TWSH"",""Minimal"",null,null,null]",,
+3,201,"[0.5,0.5]","[-32.0,-5.0]",,"[""Minimal"",""Minimal"",""QWDH"",""Minimal"",""Minimal"",""QWDH"",""Minimal"",""Minimal"",""Minimal"",""Minimal""]",,
+4,301,"[0.5,0.5]","[-10.0,-5.0]",,"[null,null,""QWDH"",null,null,null,null,null,null,""Minimal""]",,

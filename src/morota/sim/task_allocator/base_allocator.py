@@ -35,7 +35,7 @@ class NearestTaskAllocator(TaskAllocator):
         stock = depot.snapshot()
 
         for w in model.workers.values():
-            if w.mode in ("go_reconstruction", "reconstruction"):
+            if w.mode in ("go_reconstruction", "reconstruction", "retire"):
                 continue
             
             deficits = w.deficits_for_declared_type()

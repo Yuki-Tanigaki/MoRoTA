@@ -1,0 +1,3 @@
+event_id,step,preference_json,objectives_json,violation,worker_types_json,routes_json,repairs_json
+1,1,"[0.5,0.5]","[-45.0,-6.0]",,"[""Dragon"",""QWDH"",""QWDH"",""Dragon"",""Dragon"",""QWDH"",""Dragon"",""QWDH"",""Dragon"",""Dragon""]",,
+2,251,"[0.5,0.5]","[1000000000000.0,1000000000000.0]",,"[null,null,null,null,null,""TWSH"",null,null,null,null]",,

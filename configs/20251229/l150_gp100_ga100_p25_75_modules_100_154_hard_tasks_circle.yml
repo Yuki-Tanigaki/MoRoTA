@@ -1,0 +1,55 @@
+scenario_name: l150_gp100_ga100_p25_75_modules_100_154_hard_tasks_circle
+output_dir: results
+space:
+  width: 100.0
+  height: 100.0
+sim:
+  max_steps: 500
+  reconstruct_duration: 10
+  time_step: 1.0
+  H_limit: 500
+module_depot:
+  position:
+  - 50.0
+  - 50.0
+failure_model:
+  module: morota.sim.failure_models
+  class: WeibullFailureModel
+  params:
+    l: 150
+    k: 1.2
+    fatigue_move:
+      Body: 0.5
+      Limb: 0.5
+      Wheel: 1.0
+    fatigue_work:
+      Body: 0.5
+      Limb: 1.0
+      Wheel: 0.0
+configuration_planner:
+  module: morota.sim.configuration_planner
+  class: GeneticPlanner
+  params:
+    interval: 100
+    num_workers_max: 10
+    pop_size: 30
+    generations: 1000
+    seed: 42
+    trials: 1
+    preference:
+    - 0.25
+    - 0.75
+task_allocator:
+  module: morota.sim.task_allocator
+  class: GeneticAllocator
+  params:
+    interval: 100
+    pop_size: 30
+    generations: 1000
+    elitism_rate: 0.1
+    L_max: 20
+    seed: 1234
+    trials: 1
+modules: ../datasets/modules_100_154.csv
+robot_setup: ../datasets/robot_setup_hard.yml
+tasks: ../datasets/tasks_circle.csv
